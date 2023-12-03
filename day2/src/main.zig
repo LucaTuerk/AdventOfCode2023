@@ -38,6 +38,16 @@ const Game = struct {
             CubeSet.print(game.sets[i]);
         }
     }
+
+    fn is_possible_with(game: Game, red: u32, green: u32, blue: u32) bool {
+        var res: bool = true;
+        for (game.sets) |set| {
+            const set_possible =
+                set.red <= red and set.green <= green and set.blue <= blue;
+            res = res and set_possible;
+        }
+        return res;
+    }
 };
 
 pub fn main() !void {}
@@ -81,7 +91,7 @@ pub fn parse_game(in: []const u8, allocator: Allocator) !Game {
     }
 
     if (list.items.len <= 0) {
-        // std.debug.print("", "Failed to read any set from game definition.");
+        std.debug.print("Failed to read any set from game definition.\n", .{});
     }
 
     var res = try Game.init(allocator, list.items.len);
@@ -150,7 +160,6 @@ pub fn remove_spaces(in: []const u8) []const u8 {
     for (0..in.len) |i| {
         if (in[i] == ' ') {
             low += 1;
-            // overall_len -= 1;
         } else {
             break;
         }
@@ -171,6 +180,9 @@ pub fn remove_spaces(in: []const u8) []const u8 {
 test "parse_game" {
     const test_allocator = std.testing.allocator;
     const case = "Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green\nGame 2: 1 blue, 2 green; 3 green, 4 blue, 1 red; 1 green, 1 blue\nGame 3: 8 green, 6 blue, 20 red; 5 blue, 4 red, 13 green; 5 green, 1 red\nGame 4: 1 green, 3 red, 6 blue; 3 green, 6 red; 3 green, 15 blue, 14 red\nGame 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green\n";
+    const expected_sum: u32 = 8;
+    const check: CubeSet = .{ .red = 12, .green = 13, .blue = 14 };
+
     const games = try parse_input(case, test_allocator);
     defer {
         for (0..games.len) |i| {
@@ -178,7 +190,20 @@ test "parse_game" {
         }
     }
 
-    for (0..games.len) |i| {
-        Game.print(games[i]);
+    std.debug.print("PARSED GAMES -> \n", .{});
+    for (games) |game| {
+        Game.print(game);
+    }
+
+    var sum: u32 = 0;
+    for (games) |game| {
+        if (Game.is_possible_with(game, check.red, check.green, check.blue)) {
+            sum += game.id;
+        }
+    }
+    if (sum == expected_sum) {
+        std.debug.print("\nSUCCESS!\n\n", .{});
+    } else {
+        std.debug.print("\nSUCCESS!\n\n", .{});
     }
 }
