@@ -48,9 +48,73 @@ const Game = struct {
         }
         return res;
     }
+
+    fn power_of_fewest(game: Game) u32 {
+        var max_red: u32 = 0;
+        var max_green: u32 = 0;
+        var max_blue: u32 = 0;
+
+        for (game.sets) |set| {
+            max_red = @max(set.red, max_red);
+            max_green = @max(set.green, max_green);
+            max_blue = @max(set.blue, max_blue);
+        }
+        return max_red * max_green * max_blue;
+    }
 };
 
-pub fn main() !void {}
+pub fn main() !void {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+
+    const path = try std.fs.realpathAlloc(gpa.allocator(), "./input");
+    defer gpa.allocator().free(path);
+
+    const input = try std.fs.cwd().readFileAlloc(gpa.allocator(), path, 1000000);
+    defer gpa.allocator().free(input);
+
+    try task1(gpa.allocator(), input);
+    try task2(gpa.allocator(), input);
+}
+
+pub fn task1(allocator: Allocator, in: []const u8) !void {
+    std.debug.print("Task 1:\n\n", .{});
+
+    const games = try parse_input(in, allocator);
+    defer {
+        for (games) |game| game.deinit();
+        allocator.free(games);
+    }
+
+    var sum: u32 = 0;
+    for (games) |game| {
+        if (Game.is_possible_with(game, 12, 13, 14)) {
+            sum += game.id;
+            std.debug.print("Game {d} is possible!\n", .{game.id});
+        }
+    }
+
+    std.debug.print("The sum of possible games is: {d}\n\n", .{sum});
+}
+
+pub fn task2(allocator: Allocator, in: []const u8) !void {
+    std.debug.print("Task 2:\n\n", .{});
+
+    const games = try parse_input(in, allocator);
+    defer {
+        for (games) |game| game.deinit();
+        allocator.free(games);
+    }
+
+    var sum: u32 = 0;
+    for (games) |game| {
+        const power: u32 = Game.power_of_fewest(game);
+        sum += power;
+        std.debug.print("The power of Game {d} is {d}.\n", .{ game.id, power });
+    }
+
+    std.debug.print("The sum is: {d}\n\n", .{sum});
+}
 
 pub fn parse_input(in: []const u8, allocator: Allocator) ![]const Game {
     std.debug.print("parse_input: {s}\n", .{in});
@@ -185,9 +249,8 @@ test "parse_game" {
 
     const games = try parse_input(case, test_allocator);
     defer {
-        for (0..games.len) |i| {
-            games[i].deinit();
-        }
+        for (games) |game| game.deinit();
+        test_allocator.free(games);
     }
 
     std.debug.print("PARSED GAMES -> \n", .{});
@@ -204,6 +267,29 @@ test "parse_game" {
     if (sum == expected_sum) {
         std.debug.print("\nSUCCESS!\n\n", .{});
     } else {
+        std.debug.print("\nFAILED!\n\n", .{});
+    }
+}
+
+test "task2" {
+    const test_allocator = std.testing.allocator;
+    const case = "Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green\nGame 2: 1 blue, 2 green; 3 green, 4 blue, 1 red; 1 green, 1 blue\nGame 3: 8 green, 6 blue, 20 red; 5 blue, 4 red, 13 green; 5 green, 1 red\nGame 4: 1 green, 3 red, 6 blue; 3 green, 6 red; 3 green, 15 blue, 14 red\nGame 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green\n";
+    const expected_sum: u32 = 2286;
+
+    const games = try parse_input(case, test_allocator);
+    defer {
+        for (games) |game| game.deinit();
+        test_allocator.free(games);
+    }
+
+    var sum: u32 = 0;
+    for (games) |game| {
+        sum += Game.power_of_fewest(game);
+    }
+
+    if (sum == expected_sum) {
         std.debug.print("\nSUCCESS!\n\n", .{});
+    } else {
+        std.debug.print("\nFAILED!\n\n", .{});
     }
 }
